@@ -727,7 +727,7 @@ const App = () => {
         setGeneratedResult({ albumArtUrl: fusedUrl, vibe });
         setGenreWeights(vibe.genres);
 
-        setLoadingStatus("Initializing audio engine..."); 
+        setLoadingStatus("Initializing audio..."); 
 
         // 3. Connect Lyria
         const manager = new LyriaManager();
