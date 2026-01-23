@@ -611,6 +611,9 @@ const App = () => {
 
   // Lyria Session Manager
   const lyriaRef = useRef<LyriaManager | null>(null);
+  
+  // Ref to always have current photos (avoids stale closure issues)
+  const photosRef = useRef<PhotoData[]>([]);
 
   // Cleanup
   useEffect(() => {
@@ -621,6 +624,11 @@ const App = () => {
     };
   }, []);
 
+  // Keep photosRef in sync with photos state
+  useEffect(() => {
+    photosRef.current = photos;
+  }, [photos]);
+
   const handleAddImages = () => {
     fileInputRef.current?.click();
   };
@@ -628,14 +636,26 @@ const App = () => {
   const processFiles = (files: FileList) => {
     if (!files || files.length === 0) return;
 
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
     const newPhotos: PhotoData[] = [];
-    const count = files.length;
     let processedCount = 0;
-
-    for (let i = 0; i < count; i++) {
+    
+    // Check all files first - reject entire batch if any are invalid
+    const validFiles: File[] = [];
+    for (let i = 0; i < files.length; i++) {
         const file = files[i];
         if (!file.type.startsWith('image/')) continue;
+        
+        if (!allowedTypes.includes(file.type)) {
+            setErrorMessage('Please use .jpeg, .png or .webp');
+            return; // Stop entirely if any file is invalid
+        }
+        validFiles.push(file);
+    }
+    
+    if (validFiles.length === 0) return;
 
+    for (const file of validFiles) {
         const reader = new FileReader();
         reader.onload = (ev) => {
             const result = ev.target?.result as string;
@@ -653,7 +673,7 @@ const App = () => {
             });
 
             processedCount++;
-            if (processedCount === count) {
+            if (processedCount === validFiles.length) {
                 // Simplified Logic: Just add to the array. 
                 // If this is the initial upload, trigger synth.
                 
@@ -685,7 +705,7 @@ const App = () => {
 
   const handleSynthesize = async (photosOverride?: PhotoData[]) => {
     // Simplified: Use override or current state. All photos are active.
-    const photosToUse = photosOverride || photos;
+    const photosToUse = photosOverride || photosRef.current;
     
     if (photosToUse.length === 0) return;
 
