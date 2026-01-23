@@ -256,7 +256,13 @@ const ActiveMixLightbox = ({
                         <Plus size={14} />
                         <span>Add Images</span>
                     </button>
-                    {/* Regenerate button removed */}
+                    <button 
+                        onClick={onRegenerate}
+                        className="magnetic-btn h-10 px-5 bg-black text-white rounded-full flex items-center gap-2 shadow-sm hover:shadow-md hover:bg-neutral-800 transition text-xs font-bold uppercase tracking-wide"
+                    >
+                        <RefreshCw size={14} />
+                        <span>Generate New Playlist</span>
+                    </button>
                 </div>
             </div>
 
