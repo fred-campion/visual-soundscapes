@@ -149,7 +149,7 @@ export const generateGifSearchTerm = async (base64Image: string): Promise<string
 export const fetchGifs = async (searchTerm: string): Promise<string[]> => {
     try {
         console.log("Fetching stickers for term:", searchTerm);
-        const apiKey = "DJchUg9xL7p3M5eHuRBP0KfnJVZaSans";
+        const apiKey = import.meta.env.VITE_GIPHY_API_KEY;
         const response = await fetch(`https://api.giphy.com/v1/stickers/search?api_key=${apiKey}&q=${encodeURIComponent(searchTerm)}&limit=10&rating=pg-13`);
         const data = await response.json();
                 
