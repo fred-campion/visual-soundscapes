@@ -1,11 +1,17 @@
-import dotenv from 'dotenv';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import fs from 'fs';
 
-// Load environment variables from .env.local (for local development)
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-dotenv.config({ path: path.join(__dirname, '..', '.env.local') });
+
+// Load .env.local only in development (when file exists)
+const envPath = path.join(__dirname, '..', '.env.local');
+if (fs.existsSync(envPath)) {
+  const dotenv = await import('dotenv');
+  dotenv.config({ path: envPath });
+  console.log('Loaded .env.local for development');
+}
 
 import express from 'express';
 import cors from 'cors';
@@ -27,13 +33,29 @@ setupApiRoutes(app);
 setupLyriaProxy(server);
 
 // Serve static files from the built frontend
-const distPath = path.join(__dirname, '..', 'dist');
+// In production (Docker), dist is at /app/dist
+// When running compiled server locally, it's at ../dist relative to dist-server
+const distPath = path.resolve(__dirname, '..', 'dist');
+console.log('Static files path:', distPath);
+console.log('Static files exist:', fs.existsSync(distPath));
+if (fs.existsSync(distPath)) {
+  console.log('Static files contents:', fs.readdirSync(distPath));
+}
+
+// Log API key status (not the actual key!)
+console.log('API_KEY env var:', process.env.API_KEY ? `SET (${process.env.API_KEY.length} chars)` : 'NOT SET');
+
 app.use(express.static(distPath));
 
 // SPA fallback - serve index.html for any non-API routes
 app.get('*', (req, res) => {
   if (!req.path.startsWith('/api') && !req.path.startsWith('/ws')) {
-    res.sendFile(path.join(distPath, 'index.html'));
+    const indexPath = path.join(distPath, 'index.html');
+    if (fs.existsSync(indexPath)) {
+      res.sendFile(indexPath);
+    } else {
+      res.status(404).send('Frontend not built. Run npm run build:frontend');
+    }
   }
 });
 
