@@ -16,6 +16,10 @@ COPY . .
 # Build the frontend (Vite) and server (TypeScript)
 RUN npm run build:frontend && npm run build:server
 
+# Verify builds completed correctly
+RUN echo "=== Frontend build contents (dist/) ===" && ls -la dist/ && \
+    echo "=== Server build contents (dist-server/) ===" && ls -la dist-server/
+
 # Expose the port the app runs on
 ENV PORT=8080
 EXPOSE 8080

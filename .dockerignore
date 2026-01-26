@@ -1,0 +1,22 @@
+# Dependencies
+node_modules
+
+# Build outputs (will be rebuilt in Docker)
+dist
+dist-server
+
+# Local environment files
+.env.local
+*.local
+
+# Git
+.git
+.gitignore
+
+# IDE
+.vscode
+.idea
+.DS_Store
+
+# Logs
+*.log
