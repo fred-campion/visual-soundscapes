@@ -18,7 +18,7 @@ const Visualizer: React.FC<VisualizerProps> = ({ analyser, isPlaying, primaryCol
     if (!ctx) return;
 
     // Buffer setup for real-time data
-    let dataArray: Uint8Array;
+    let dataArray: Uint8Array = new Uint8Array(0);
     let bufferLength = 0;
 
     if (analyser) {
@@ -45,7 +45,7 @@ const Visualizer: React.FC<VisualizerProps> = ({ analyser, isPlaying, primaryCol
       }
 
       // Get real audio data
-      analyser.getByteTimeDomainData(dataArray);
+      analyser.getByteTimeDomainData(dataArray as Uint8Array<ArrayBuffer>);
 
       // Active Waveform
       ctx.beginPath();

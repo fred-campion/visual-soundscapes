@@ -13,9 +13,12 @@ RUN npm install
 # Copy the rest of the application code
 COPY . .
 
+# Build the frontend (Vite) and server (TypeScript)
+RUN npm run build:frontend && npm run build:server
+
 # Expose the port the app runs on
 ENV PORT=8080
 EXPOSE 8080
 
-# Command to run the application
+# Command to run the Express server
 CMD ["npm", "run", "start"]

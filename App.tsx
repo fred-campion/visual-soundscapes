@@ -732,40 +732,39 @@ const App = () => {
         
         setLoadingStatus("Analyzing visuals..."); 
 
-        // 2. Analyze
-        const vibe = await analyzeVibe(fusedUrl);
+        // Run vibe analysis, GIF search, and title generation in PARALLEL
+        const [vibe, gifSearchTerm] = await Promise.all([
+            analyzeVibe(fusedUrl),
+            generateGifSearchTerm(fusedUrl)
+        ]);
         
         setLoadingStatus("Synthesizing..."); 
 
-        // 2.5 Generate GIF Theme (Parallel to Vibe but waited)
-        const gifSearchTerm = await generateGifSearchTerm(fusedUrl);
-        const newGifIds = await fetchGifs(gifSearchTerm);
+        // Start these in parallel: fetch GIFs, generate title, AND connect to Lyria
+        // Lyria connection can start as soon as we have the vibe
+        const manager = new LyriaManager();
+        lyriaRef.current = manager;
+        setIsBuffering(true);
+
+        // Run GIF fetch, title generation, and Lyria connection in parallel
+        const [newGifIds, newTitle] = await Promise.all([
+            fetchGifs(gifSearchTerm),
+            generateTitle(fusedUrl, Object.keys(vibe.genres)),
+            // Start Lyria connection immediately (don't await separately)
+            manager.connect(vibe, () => {
+                console.log("Audio started flowing - Starting visuals");
+                setIsPlaying(true);
+                setIsBuffering(false);
+            })
+        ]);
+
+        // Update state with results
         if (newGifIds.length > 0) {
             setGifIds(newGifIds);
         }
-
-        // 2.6 Generate Title
-        const newTitle = await generateTitle(fusedUrl, Object.keys(vibe.genres));
         setTitle(newTitle);
-
         setGeneratedResult({ albumArtUrl: fusedUrl, vibe });
         setGenreWeights(vibe.genres);
-
-        setLoadingStatus("Initializing audio..."); 
-
-        // 3. Connect Lyria
-        const manager = new LyriaManager();
-        lyriaRef.current = manager;
-        
-        // Start buffering state
-        setIsBuffering(true);
-
-        // Pass callback to set isPlaying ONLY when audio chunks actually start arriving
-        await manager.connect(vibe, () => {
-            console.log("Audio started flowing - Starting visuals");
-            setIsPlaying(true);
-            setIsBuffering(false);
-        });
         
         // We switch to player view immediately, but animations wait for the callback above
         setAppState('player');

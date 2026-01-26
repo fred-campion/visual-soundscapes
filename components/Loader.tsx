@@ -16,7 +16,7 @@ const Loader: React.FC<LoaderProps> = ({ step }) => {
        </div>
        <h3 className="text-xl font-mono text-[#ccff00] uppercase tracking-widest">{step}</h3>
        <p className="text-neutral-500 text-sm mt-2">
-         {step === "Composing..." ? "Estimate: 30 seconds." : "Estimate: 1 minute."}
+         {step === "Composing..." ? "Estimate: Almost ready..." : "Estimate: 1 minute."}
        </p>
     </div>
   );
