@@ -6,8 +6,6 @@ import { v4 as uuidv4 } from 'uuid';
 
 // --- STYLES & ANIMATIONS ---
 const styles = `
-  @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;500;700;800&family=Inter:wght@300;400;500;600&display=swap');
-
   :root {
     --bg-paper: #ffffff;
     --bg-subtle: #f4f4f5;
