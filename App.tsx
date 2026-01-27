@@ -732,12 +732,16 @@ const App = () => {
         
         setLoadingStatus("Analyzing visuals..."); 
 
-        // Run vibe analysis (Removed GIF search term generation)
-        const vibe = await analyzeVibe(fusedUrl);
+        // Run vibe analysis and title generation in parallel
+        const [vibe, newTitle] = await Promise.all([
+            analyzeVibe(fusedUrl),
+            generateTitle(fusedUrl, [])  // Title doesn't need genres
+        ]);
         
-        // Set album art and genres immediately so player can show them
+        // Set album art, genres, and title immediately so player has them ready
         setGeneratedResult({ albumArtUrl: fusedUrl, vibe });
         setGenreWeights(vibe.genres);
+        setTitle(newTitle);
         
         setLoadingStatus("Synthesizing..."); 
 
@@ -746,19 +750,13 @@ const App = () => {
         lyriaRef.current = manager;
         setIsBuffering(true);
 
-        // Run title generation and Lyria connection in parallel
-        // The player will show as soon as audio starts (via the callback)
-        const [newTitle] = await Promise.all([
-            generateTitle(fusedUrl, Object.keys(vibe.genres)),
-            manager.connect(vibe, () => {
-                console.log("Audio started flowing - Showing player");
-                setIsPlaying(true);
-                setIsBuffering(false);
-                setAppState('player');  // Show player immediately when audio starts
-            })
-        ]);
-
-        setTitle(newTitle);
+        // Connect to Lyria - player shows when audio starts
+        await manager.connect(vibe, () => {
+            console.log("Audio started flowing - Showing player");
+            setIsPlaying(true);
+            setIsBuffering(false);
+            setAppState('player');  // Show player immediately when audio starts
+        });
 
     } catch (e: any) {
         console.error(e);
