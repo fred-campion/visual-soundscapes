@@ -72,19 +72,17 @@ export const generateGifSearchTerm = async (base64Image: string): Promise<string
 };
 
 /**
- * Step 4: Fetch Stickers from Giphy (still direct - no API key exposure concern)
+ * Step 4: Fetch Stickers from Giphy via backend proxy
  */
 export const fetchGifs = async (searchTerm: string): Promise<string[]> => {
   try {
     console.log("Fetching stickers for term:", searchTerm);
-    const apiKey = import.meta.env.VITE_GIPHY_API_KEY;
-    const response = await fetch(`https://api.giphy.com/v1/stickers/search?api_key=${apiKey}&q=${encodeURIComponent(searchTerm)}&limit=10&rating=pg-13`);
+    const response = await fetch(`/api/giphy?q=${encodeURIComponent(searchTerm)}`);
     const data = await response.json();
             
-    if (data.data && Array.isArray(data.data)) {
-      const ids = data.data.map((gif: any) => gif.id);
-      console.log("Sticker IDs found:", ids);
-      return ids;
+    if (data.ids && Array.isArray(data.ids)) {
+      console.log("Sticker IDs found:", data.ids);
+      return data.ids;
     }
     console.warn("No stickers found in response");
     return [];

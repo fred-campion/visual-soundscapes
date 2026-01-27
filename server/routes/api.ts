@@ -214,5 +214,39 @@ export function setupApiRoutes(app: Express) {
     }
   });
 
-  console.log('API routes configured: /api/fuse, /api/analyze, /api/gif-search, /api/title');
+  /**
+   * GET /api/giphy
+   * Proxy Giphy sticker search to keep API key server-side
+   */
+  app.get('/api/giphy', async (req: Request, res: Response) => {
+    try {
+      const { q } = req.query;
+      
+      if (!q || typeof q !== 'string') {
+        return res.status(400).json({ error: 'Search query required' });
+      }
+
+      const giphyApiKey = process.env.GIPHY_API_KEY;
+      if (!giphyApiKey) {
+        console.error('GIPHY_API_KEY not set');
+        return res.status(500).json({ error: 'Giphy API key not configured' });
+      }
+
+      const giphyUrl = `https://api.giphy.com/v1/stickers/search?api_key=${giphyApiKey}&q=${encodeURIComponent(q)}&limit=10&rating=pg-13`;
+      const response = await fetch(giphyUrl);
+      const data = await response.json();
+
+      if (data.data && Array.isArray(data.data)) {
+        const ids = data.data.map((gif: any) => gif.id);
+        return res.json({ ids });
+      }
+
+      return res.json({ ids: [] });
+    } catch (error: any) {
+      console.error('Giphy Proxy Error:', error);
+      return res.status(500).json({ error: error.message || 'Giphy fetch failed' });
+    }
+  });
+
+  console.log('API routes configured: /api/fuse, /api/analyze, /api/gif-search, /api/title, /api/giphy');
 }
