@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { Upload, Play, Pause, Sparkles, Disc, X, Volume2, Share2, ArrowRight, Layers, RefreshCw, MoveRight, Music, Plus, Pen, ChevronUp, ChevronDown } from 'lucide-react';
-import { fuseImages, analyzeVibe, LyriaManager, generateGifSearchTerm, fetchGifs, generateTitle } from './services/gemini';
+import { fuseImages, analyzeVibe, LyriaManager, generateTitle } from './services/gemini';
 import { VibeAnalysis } from './types';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -345,23 +345,23 @@ const LightboxToggle = ({
 };
 
 // 2.7 Floating Background
-const FloatingBackground = ({ gifIds }: { gifIds: string[] }) => {
+const FloatingBackground = ({ photos }: { photos: PhotoData[] }) => {
     
     const items = useMemo(() => {
-        if (gifIds.length === 0) return [];
+        if (photos.length === 0) return [];
 
         // Increase density by duplicating the list
-        const DENSITY_MULTIPLIER = 3; 
-        const expandedIds = Array(DENSITY_MULTIPLIER).fill(gifIds).flat();
+        const DENSITY_MULTIPLIER = 5; 
+        const expandedPhotos = Array(DENSITY_MULTIPLIER).fill(photos).flat();
 
         // Create evenly distributed slots for horizontal position (5% to 90%)
-        const slots = Array.from({ length: expandedIds.length }, (_, i) => 
-            (i * (85 / Math.max(expandedIds.length, 1))) + 5
+        const slots = Array.from({ length: expandedPhotos.length }, (_, i) => 
+            (i * (85 / Math.max(expandedPhotos.length, 1))) + 5
         );
         // Shuffle slots so the sequence isn't linear
         const shuffledSlots = slots.sort(() => Math.random() - 0.5);
 
-        return expandedIds.map((id, i) => {
+        return expandedPhotos.map((photo, i) => {
             // Random size: 60px to 200px (Only smaller than original 200px)
             const size = Math.floor(Math.random() * 141) + 60;
             
@@ -371,15 +371,16 @@ const FloatingBackground = ({ gifIds }: { gifIds: string[] }) => {
             const duration = 30 - (speedFactor * 15); // Result: ~15s to ~25s
             
             return {
-                id,
+                id: photo.id,
+                src: photo.src,
                 size,
                 left: shuffledSlots[i] + (Math.random() * 8 - 4), // Slot + Jitter
                 duration,
-                delay: i * (15 / expandedIds.length), // Distribute start times based on total expanded count
+                delay: i * (15 / expandedPhotos.length), // Distribute start times based on total expanded count
                 zIndex: Math.floor(size) // Depth sorting
             };
         });
-    }, [gifIds]);
+    }, [photos]);
     
     return (
         <div className="absolute inset-0 pointer-events-none z-0 overflow-hidden">
@@ -398,8 +399,8 @@ const FloatingBackground = ({ gifIds }: { gifIds: string[] }) => {
                     }}
                 >
                     <img 
-                        src={`https://i.giphy.com/media/${item.id}/giphy.gif`} 
-                        className="h-full w-auto" 
+                        src={item.src} 
+                        className="h-full w-auto rounded-lg shadow-lg" 
                         alt=""
                     />
                 </div>
@@ -420,7 +421,7 @@ const PlayerSection = ({
     onPlayPause,
     onGenreWeightChange,
     onGenreRename,
-    gifIds,
+    photos,
     title
 }: {
     isActive: boolean;
@@ -432,7 +433,7 @@ const PlayerSection = ({
     onPlayPause: () => void;
     onGenreWeightChange: (genre: string, val: number) => void;
     onGenreRename: (oldName: string, newName: string) => void;
-    gifIds: string[];
+    photos: PhotoData[];
     title: string;
 }) => {
     
@@ -444,7 +445,7 @@ const PlayerSection = ({
             style={{ height: `${height}vh` }}
         >
             {/* Floating Stickers Background */}
-            <FloatingBackground gifIds={gifIds} />
+            <FloatingBackground photos={photos} />
             
             {/* Main Content Container */}
             <div className="flex-1 flex flex-col md:flex-row items-center justify-center gap-16 md:gap-24 px-8 z-10 relative">
@@ -603,7 +604,6 @@ const App = () => {
   const [isLightboxOpen, setIsLightboxOpen] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isBuffering, setIsBuffering] = useState(false); // New State for buffering
-  const [gifIds, setGifIds] = useState<string[]>([]);
   const [loadingStatus, setLoadingStatus] = useState<string>("Initializing..."); 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -732,11 +732,8 @@ const App = () => {
         
         setLoadingStatus("Analyzing visuals..."); 
 
-        // Run vibe analysis and GIF search term generation in parallel
-        const [vibe, gifSearchTerm] = await Promise.all([
-            analyzeVibe(fusedUrl),
-            generateGifSearchTerm(fusedUrl)
-        ]);
+        // Run vibe analysis (Removed GIF search term generation)
+        const vibe = await analyzeVibe(fusedUrl);
         
         // Set album art and genres immediately so player can show them
         setGeneratedResult({ albumArtUrl: fusedUrl, vibe });
@@ -749,11 +746,9 @@ const App = () => {
         lyriaRef.current = manager;
         setIsBuffering(true);
 
-        // Run GIF fetch, title generation, and Lyria connection in parallel
+        // Run title generation and Lyria connection in parallel
         // The player will show as soon as audio starts (via the callback)
-        // GIFs and title will update the UI when they complete
-        const [newGifIds, newTitle] = await Promise.all([
-            fetchGifs(gifSearchTerm),
+        const [newTitle] = await Promise.all([
             generateTitle(fusedUrl, Object.keys(vibe.genres)),
             manager.connect(vibe, () => {
                 console.log("Audio started flowing - Showing player");
@@ -763,10 +758,6 @@ const App = () => {
             })
         ]);
 
-        // Update GIFs and title (player is already showing)
-        if (newGifIds.length > 0) {
-            setGifIds(newGifIds);
-        }
         setTitle(newTitle);
 
     } catch (e: any) {
@@ -897,7 +888,7 @@ const App = () => {
             onPlayPause={togglePlayPause}
             onGenreWeightChange={handleMixChange}
             onGenreRename={handleGenreRename}
-            gifIds={gifIds}
+            photos={photos}
             title={title}
         />
 
