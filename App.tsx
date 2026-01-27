@@ -732,42 +732,42 @@ const App = () => {
         
         setLoadingStatus("Analyzing visuals..."); 
 
-        // Run vibe analysis, GIF search, and title generation in PARALLEL
+        // Run vibe analysis and GIF search term generation in parallel
         const [vibe, gifSearchTerm] = await Promise.all([
             analyzeVibe(fusedUrl),
             generateGifSearchTerm(fusedUrl)
         ]);
         
+        // Set album art and genres immediately so player can show them
+        setGeneratedResult({ albumArtUrl: fusedUrl, vibe });
+        setGenreWeights(vibe.genres);
+        
         setLoadingStatus("Synthesizing..."); 
 
-        // Start these in parallel: fetch GIFs, generate title, AND connect to Lyria
-        // Lyria connection can start as soon as we have the vibe
+        // Start Lyria connection - when audio starts, show the player
         const manager = new LyriaManager();
         lyriaRef.current = manager;
         setIsBuffering(true);
 
         // Run GIF fetch, title generation, and Lyria connection in parallel
+        // The player will show as soon as audio starts (via the callback)
+        // GIFs and title will update the UI when they complete
         const [newGifIds, newTitle] = await Promise.all([
             fetchGifs(gifSearchTerm),
             generateTitle(fusedUrl, Object.keys(vibe.genres)),
-            // Start Lyria connection immediately (don't await separately)
             manager.connect(vibe, () => {
-                console.log("Audio started flowing - Starting visuals");
+                console.log("Audio started flowing - Showing player");
                 setIsPlaying(true);
                 setIsBuffering(false);
+                setAppState('player');  // Show player immediately when audio starts
             })
         ]);
 
-        // Update state with results
+        // Update GIFs and title (player is already showing)
         if (newGifIds.length > 0) {
             setGifIds(newGifIds);
         }
         setTitle(newTitle);
-        setGeneratedResult({ albumArtUrl: fusedUrl, vibe });
-        setGenreWeights(vibe.genres);
-        
-        // We switch to player view immediately, but animations wait for the callback above
-        setAppState('player');
 
     } catch (e: any) {
         console.error(e);
