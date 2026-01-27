@@ -1,6 +1,6 @@
 # Visual Soundscapes
 
-Turn images into personalized, infinite audio streams powered by AI.
+Turn images into personalized, infinite audio streams. 
 
 ## Run Locally
 
